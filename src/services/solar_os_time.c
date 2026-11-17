@@ -18,6 +18,10 @@
 #define TIME_NVS_TZ_NAME_KEY "tz_name"
 #define TIME_NVS_TZ_POSIX_KEY "tz_posix"
 #define TIME_NTP_SERVER_MAX 96
+/* Asked after pool.ntp.org when the caller takes the default: lwIP moves to the next
+ * server at once after a receive timeout, while one server waits SNTP_RETRY_TIMEOUT
+ * and asks the same address again, which fails when that pool member is down. */
+#define TIME_NTP_SECOND_SERVER "1.pool.ntp.org"
 #define SECONDS_PER_DAY 86400LL
 #define TIME_VALID_EPOCH_SECONDS 946684800LL
 
@@ -489,6 +493,12 @@ static esp_err_t ntp_sync_once(const char *server,
 
     esp_netif_sntp_deinit();
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(selected_server);
+#if CONFIG_LWIP_SNTP_MAX_SERVERS >= 2
+    if (strcmp(selected_server, SOLAR_OS_NTP_DEFAULT_SERVER) == 0) {
+        config.servers[1] = TIME_NTP_SECOND_SERVER;
+        config.num_of_servers = 2;
+    }
+#endif
     esp_err_t ret = esp_netif_sntp_init(&config);
     if (ret != ESP_OK) {
         return ret;

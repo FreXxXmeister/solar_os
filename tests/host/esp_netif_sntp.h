@@ -6,6 +6,11 @@
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 
+/* ESP-IDF's default; ntp_sync_two_servers_test passes 2 as sdkconfig.defaults sets it. */
+#ifndef CONFIG_LWIP_SNTP_MAX_SERVERS
+#define CONFIG_LWIP_SNTP_MAX_SERVERS 1
+#endif
+
 typedef struct {
     bool smooth_sync;
     bool server_from_dhcp;
@@ -16,7 +21,7 @@ typedef struct {
     int ip_event_to_renew;
     size_t index_of_first_server;
     size_t num_of_servers;
-    const char *servers[4];
+    const char *servers[CONFIG_LWIP_SNTP_MAX_SERVERS];
 } esp_sntp_config_t;
 
 #define ESP_SNTP_SERVER_LIST(...) { __VA_ARGS__ }

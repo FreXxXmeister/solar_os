@@ -1,6 +1,7 @@
 # Defaults do not override values in an existing generated sdkconfig. Raise
-# integer stack sizes that the selected defaults require, keeping any larger
-# local value and every other setting. Run before ESP-IDF loads sdkconfig.
+# integer values (stack sizes, the SNTP server count) that the selected defaults
+# require, keeping any larger local value and every other setting. Run before
+# ESP-IDF loads sdkconfig.
 function(solar_os_apply_sdkconfig_minimums)
     if(DEFINED SDKCONFIG_DEFAULTS)
         set(defaults ${SDKCONFIG_DEFAULTS})
@@ -16,7 +17,8 @@ function(solar_os_apply_sdkconfig_minimums)
         return()
     endif()
     # KEY or KEY:DEPRECATED_ALIAS (the alias line is dropped so it cannot win)
-    foreach(item IN ITEMS CONFIG_ESP_MAIN_TASK_STACK_SIZE:CONFIG_MAIN_TASK_STACK_SIZE)
+    foreach(item IN ITEMS CONFIG_ESP_MAIN_TASK_STACK_SIZE:CONFIG_MAIN_TASK_STACK_SIZE
+                          CONFIG_LWIP_SNTP_MAX_SERVERS)
         string(REPLACE ":" ";" item "${item}")
         list(GET item 0 key)
         list(LENGTH item item_len)

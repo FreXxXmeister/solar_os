@@ -49,10 +49,13 @@ static esp_err_t init_result = ESP_OK;
 static bool nest_in_wait;
 static esp_err_t nested_result;
 static int nested_deinit_calls;
+static esp_sntp_config_t last_config;
 
 esp_err_t esp_netif_sntp_init(const esp_sntp_config_t *config)
 {
     assert(config != NULL && config->num_of_servers >= 1);
+    assert(config->num_of_servers <= CONFIG_LWIP_SNTP_MAX_SERVERS);
+    last_config = *config;
     return init_result;
 }
 
@@ -90,10 +93,31 @@ static void test_sync_runs_again_after_each_way_out(void)
     assert(solar_os_time_ntp_sync("pool.ntp.org", 0, NULL, NULL) == ESP_ERR_TIMEOUT);
 }
 
+static void test_default_server_gets_a_second_one(void)
+{
+    assert(solar_os_time_ntp_sync(NULL, 0, NULL, NULL) == ESP_ERR_TIMEOUT);
+    assert(strcmp(last_config.servers[0], SOLAR_OS_NTP_DEFAULT_SERVER) == 0);
+#if CONFIG_LWIP_SNTP_MAX_SERVERS >= 2
+    assert(last_config.num_of_servers == 2);
+    assert(strcmp(last_config.servers[1], "1.pool.ntp.org") == 0);
+#else
+    assert(last_config.num_of_servers == 1);
+#endif
+}
+
+static void test_named_server_is_asked_alone(void)
+{
+    assert(solar_os_time_ntp_sync("time.cloudflare.com", 0, NULL, NULL) == ESP_ERR_TIMEOUT);
+    assert(last_config.num_of_servers == 1);
+    assert(strcmp(last_config.servers[0], "time.cloudflare.com") == 0);
+}
+
 int main(void)
 {
     test_second_sync_is_refused_without_touching_sntp();
     test_sync_runs_again_after_each_way_out();
+    test_default_server_gets_a_second_one();
+    test_named_server_is_asked_alone();
     puts("ntp sync tests passed");
     return 0;
 }

@@ -12,9 +12,10 @@ SNTP_STARTUP_DELAY_MAX_MS = 5000
 # lwIP sntp_opts.h: SNTP_RECV_TIMEOUT 15000. After a request, lwIP waits this long
 # for the reply, then calls sntp_try_next_server.
 SNTP_RECV_TIMEOUT_MS = 15000
-# lwIP sntp_opts.h: SNTP_RETRY_TIMEOUT = SNTP_RECV_TIMEOUT. With one server
-# (CONFIG_LWIP_SNTP_MAX_SERVERS defaults to 1), sntp_try_next_server finds no
-# other server and calls sntp_retry, which waits this long before the next request.
+# lwIP sntp_opts.h: SNTP_RETRY_TIMEOUT = SNTP_RECV_TIMEOUT. With one server (a
+# server the caller names; pool.ntp.org gets 1.pool.ntp.org as a second),
+# sntp_try_next_server finds no other server and calls sntp_retry, which waits
+# this long before the next request.
 SNTP_RETRY_TIMEOUT_MS = 15000
 # lwIP dns.c with DNS_MAX_RETRIES 4 and DNS_TMR_INTERVAL 1000: sends at 0, 1, 2 and 4 s,
 # and reports a failed lookup at 7 s when only one DNS server is set; sntp_dns_found

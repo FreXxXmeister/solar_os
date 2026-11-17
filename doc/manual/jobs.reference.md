@@ -946,7 +946,7 @@ Defaults:
 | Setting | Value |
 | --- | --- |
 | Interval | `60` seconds |
-| Server | `pool.ntp.org` |
+| Server | `pool.ntp.org`, then `1.pool.ntp.org` when it does not answer |
 | Wait per sync | `40` seconds, so lwIP can retry one lost packet |
 
 Examples:

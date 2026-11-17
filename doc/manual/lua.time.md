@@ -14,7 +14,7 @@ agent_reference_sections = true
 ## `solaros.time`
 
 - `solaros.time`: `uptime_ms`, `sleep_ms`, `uptime`, `datetime`, `utc_datetime`, `set_datetime`, `set_utc_datetime`, `utc_to_local`, `local_to_utc`, `is_valid`, `timezone`, `set_timezone`, `ntp_sync`. `sleep_ms` is cancellation-aware and accepts delays up to one hour.
-- `ntp_sync([server[, timeout_ms]])` returns `{utc = ..., ["local"] = ...}`. `server` defaults to `pool.ntp.org`, `timeout_ms` to `40000`. With less than 40000, a sync whose first packet is lost can fail before lwIP's retry. While another sync runs, it raises the error `ESP_ERR_INVALID_STATE`. Stopping the script waits until a running `ntp_sync` returns.
+- `ntp_sync([server[, timeout_ms]])` returns `{utc = ..., ["local"] = ...}`. `server` defaults to `pool.ntp.org`, with `1.pool.ntp.org` asked next when it does not answer (another server you name is asked alone), `timeout_ms` to `40000`. With less than 40000, a sync whose first packet is lost can fail before lwIP's retry. While another sync runs, it raises the error `ESP_ERR_INVALID_STATE`. Stopping the script waits until a running `ntp_sync` returns.
 
 ## `solaros.rtc`
 

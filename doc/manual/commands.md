@@ -1159,7 +1159,7 @@ xfer recv <port> <file> --zmodem [--append|--replace]
 | `mqtt` | `mqtt subscribe <topic> [qos]` | Subscribe and print received messages until app-exit or `q`. |
 | `ping` | `ping <host> [count]` | Send ICMP echo requests. Without count, ping runs until Esc, Ctrl+C, or app-exit. |
 | `netscan` | `netscan <host\|range> [ports]` | Scan TCP ports on one host or a capped IPv4 range. |
-| `ntp` | `ntp [server]` | Sync the wall clock from NTP (default server `pool.ntp.org`). Waits up to 40 s, so lwIP can retry one lost packet, then prints `ntp: sync timed out`. While another sync runs (the `ntp-sync` job, a script), it prints `ntp: sync failed: resource is busy or not ready`. |
+| `ntp` | `ntp [server]` | Sync the wall clock from NTP (default server `pool.ntp.org`, with `1.pool.ntp.org` asked next when it does not answer; another server you name is asked alone). Waits up to 40 s, so lwIP can retry one lost packet, then prints `ntp: sync timed out`. While another sync runs (the `ntp-sync` job, a script), it prints `ntp: sync failed: resource is busy or not ready`. |
 
 Wi-Fi is enabled by default when no saved setting exists, including after `nvs
 clear`. `wifi on` and `wifi off` control the radio in the current boot. The
