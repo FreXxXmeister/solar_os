@@ -1487,6 +1487,10 @@ void solar_os_shell_cmd_ntp(solar_os_context_t *ctx, int argc, char **argv)
         solar_os_shell_io_writeln(term, "ntp: RTC not available on this board");
         return;
     }
+    if (err == ESP_ERR_INVALID_STATE) {
+        solar_os_shell_io_writeln(term, "ntp: another sync is running");
+        return;
+    }
     if (err != ESP_OK) {
         solar_os_shell_io_printf(term, "ntp: sync failed: %s\n", solar_os_shell_error_text(err));
         return;

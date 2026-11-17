@@ -929,7 +929,9 @@ Notes:
 ## ntp-sync
 
 Network time synchronization job. It updates the SolarOS wall clock from NTP
-and also updates the hardware RTC when the board provides one.
+and also updates the hardware RTC when the board provides one. A sync that
+starts while another one runs (`ntp`, a script) fails with
+`ESP_ERR_INVALID_STATE` and counts as a failed sync.
 
 Usage:
 

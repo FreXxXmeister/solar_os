@@ -27,6 +27,8 @@ static bool timezone_loaded;
 static solar_os_time_provider_t time_provider;
 static char time_provider_owner[24];
 static portMUX_TYPE time_provider_lock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE ntp_sync_lock = portMUX_INITIALIZER_UNLOCKED;
+static bool ntp_sync_running;
 
 static void datetime_from_tm(solar_os_datetime_t *out, const struct tm *in, bool clock_integrity)
 {
@@ -470,10 +472,10 @@ esp_err_t solar_os_time_set_timezone(const char *timezone)
     return timezone_save();
 }
 
-esp_err_t solar_os_time_ntp_sync(const char *server,
-                                 uint32_t timeout_ms,
-                                 solar_os_datetime_t *utc,
-                                 solar_os_datetime_t *local)
+static esp_err_t ntp_sync_once(const char *server,
+                               uint32_t timeout_ms,
+                               solar_os_datetime_t *utc,
+                               solar_os_datetime_t *local)
 {
     const char *selected_server =
         server != NULL && server[0] != '\0' ? server : SOLAR_OS_NTP_DEFAULT_SERVER;
@@ -520,5 +522,28 @@ esp_err_t solar_os_time_ntp_sync(const char *server,
     if (local != NULL) {
         ret = solar_os_time_utc_to_local(&utc_datetime, local);
     }
+    return ret;
+}
+
+esp_err_t solar_os_time_ntp_sync(const char *server,
+                                 uint32_t timeout_ms,
+                                 solar_os_datetime_t *utc,
+                                 solar_os_datetime_t *local)
+{
+    /* esp_netif_sntp is one client for the whole system: a second sync's
+     * esp_netif_sntp_deinit() would delete the semaphore the first one waits on. */
+    portENTER_CRITICAL(&ntp_sync_lock);
+    const bool busy = ntp_sync_running;
+    ntp_sync_running = true;
+    portEXIT_CRITICAL(&ntp_sync_lock);
+    if (busy) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    const esp_err_t ret = ntp_sync_once(server, timeout_ms, utc, local);
+
+    portENTER_CRITICAL(&ntp_sync_lock);
+    ntp_sync_running = false;
+    portEXIT_CRITICAL(&ntp_sync_lock);
     return ret;
 }

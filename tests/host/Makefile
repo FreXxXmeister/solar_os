@@ -23,6 +23,7 @@ TARGETS += usb_service_storage_test
 TARGETS += usb_service_vbus_test
 TARGETS += storage_usb_mounts_test
 TARGETS += ps2_keyboard_job_test
+TARGETS += ntp_sync_test
 
 USB_HID_CODEC_SOURCES := $(ROOT)/src/drivers/usb_hid_report.c $(ROOT)/src/drivers/usb_hid_keyboard_report.c $(ROOT)/src/drivers/usb_hid_mouse_report.c $(ROOT)/src/drivers/usb_hid_joystick_report.c
 USB_HID_CODEC_HEADERS := $(wildcard $(ROOT)/src/drivers/usb_hid*report.h)
@@ -1434,6 +1435,14 @@ time_timezone_test: time_timezone_test.c \
 	$(CC) $(CFLAGS) -D_GNU_SOURCE -I$(ROOT)/src/services \
 		time_timezone_test.c $(ROOT)/src/services/solar_os_timezone.c -o $@
 
+ntp_sync_test: ntp_sync_test.c esp_netif_sntp.h \
+		$(ROOT)/src/services/solar_os_time.c \
+		$(ROOT)/src/services/solar_os_time.h \
+		$(ROOT)/src/services/solar_os_timezone.c
+	$(CC) $(CFLAGS) -D_GNU_SOURCE -include compat.h -I. -I$(ROOT)/src/services \
+		ntp_sync_test.c $(ROOT)/src/services/solar_os_time.c \
+		$(ROOT)/src/services/solar_os_timezone.c -o $@
+
 rtc_service_test: rtc_service_test.c \
 		$(ROOT)/src/services/solar_os_rtc.c \
 		$(ROOT)/src/services/solar_os_rtc.h \
@@ -1611,6 +1620,7 @@ test: $(TARGETS)
 	./meshcore_ble_protocol_test
 	./link_repeater_test
 	./time_timezone_test
+	./ntp_sync_test
 	./rtc_service_test
 	./rtc_pcf85063_test
 	./ubx_test
