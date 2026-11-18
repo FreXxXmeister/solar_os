@@ -50,12 +50,18 @@ static bool nest_in_wait;
 static esp_err_t nested_result;
 static int nested_deinit_calls;
 static esp_sntp_config_t last_config;
+/* lwIP's server slots: esp_netif_sntp_init sets only the first num_of_servers of them,
+ * and neither esp_netif_sntp_deinit nor sntp_stop clears the rest. */
+static const char *lwip_slots[CONFIG_LWIP_SNTP_MAX_SERVERS];
 
 esp_err_t esp_netif_sntp_init(const esp_sntp_config_t *config)
 {
     assert(config != NULL && config->num_of_servers >= 1);
     assert(config->num_of_servers <= CONFIG_LWIP_SNTP_MAX_SERVERS);
     last_config = *config;
+    for (size_t i = 0; i < config->num_of_servers; i++) {
+        lwip_slots[i] = config->servers[i];
+    }
     return init_result;
 }
 
@@ -107,9 +113,12 @@ static void test_default_server_gets_a_second_one(void)
 
 static void test_named_server_is_asked_alone(void)
 {
+    /* After a default sync, as lwIP can stay on slot 1 when pool.ntp.org did not answer. */
+    assert(solar_os_time_ntp_sync(NULL, 0, NULL, NULL) == ESP_ERR_TIMEOUT);
     assert(solar_os_time_ntp_sync("time.cloudflare.com", 0, NULL, NULL) == ESP_ERR_TIMEOUT);
-    assert(last_config.num_of_servers == 1);
-    assert(strcmp(last_config.servers[0], "time.cloudflare.com") == 0);
+    for (size_t i = 0; i < CONFIG_LWIP_SNTP_MAX_SERVERS; i++) {
+        assert(strcmp(lwip_slots[i], "time.cloudflare.com") == 0);
+    }
 }
 
 int main(void)
