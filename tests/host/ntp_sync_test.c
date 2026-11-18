@@ -99,21 +99,24 @@ static void test_sync_runs_again_after_each_way_out(void)
     assert(solar_os_time_ntp_sync("pool.ntp.org", 0, NULL, NULL) == ESP_ERR_TIMEOUT);
 }
 
-static void test_default_server_gets_a_second_one(void)
+static void test_pool_gets_esphome_servers(void)
 {
-    assert(solar_os_time_ntp_sync(NULL, 0, NULL, NULL) == ESP_ERR_TIMEOUT);
-    assert(strcmp(last_config.servers[0], SOLAR_OS_NTP_DEFAULT_SERVER) == 0);
-#if CONFIG_LWIP_SNTP_MAX_SERVERS >= 2
-    assert(last_config.num_of_servers == 2);
-    assert(strcmp(last_config.servers[1], "1.pool.ntp.org") == 0);
-#else
-    assert(last_config.num_of_servers == 1);
-#endif
+    /* ESPHome's default servers, one per slot (esphome/components/sntp/time.py). */
+    static const char *const esphome[] = {"0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"};
+    static const char *const servers[] = {NULL, "pool.ntp.org"}; /* the default, and named */
+    assert(CONFIG_LWIP_SNTP_MAX_SERVERS <= 3);
+    for (size_t s = 0; s < 2; s++) {
+        assert(solar_os_time_ntp_sync(servers[s], 0, NULL, NULL) == ESP_ERR_TIMEOUT);
+        assert(last_config.num_of_servers == CONFIG_LWIP_SNTP_MAX_SERVERS);
+        for (size_t i = 0; i < CONFIG_LWIP_SNTP_MAX_SERVERS; i++) {
+            assert(strcmp(last_config.servers[i], esphome[i]) == 0);
+        }
+    }
 }
 
 static void test_named_server_is_asked_alone(void)
 {
-    /* After a default sync, as lwIP can stay on slot 1 when pool.ntp.org did not answer. */
+    /* After a default sync, as lwIP can stay on a later slot when a pool server did not answer. */
     assert(solar_os_time_ntp_sync(NULL, 0, NULL, NULL) == ESP_ERR_TIMEOUT);
     assert(solar_os_time_ntp_sync("time.cloudflare.com", 0, NULL, NULL) == ESP_ERR_TIMEOUT);
     for (size_t i = 0; i < CONFIG_LWIP_SNTP_MAX_SERVERS; i++) {
@@ -125,7 +128,7 @@ int main(void)
 {
     test_second_sync_is_refused_without_touching_sntp();
     test_sync_runs_again_after_each_way_out();
-    test_default_server_gets_a_second_one();
+    test_pool_gets_esphome_servers();
     test_named_server_is_asked_alone();
     puts("ntp sync tests passed");
     return 0;

@@ -6,7 +6,7 @@
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 
-/* ESP-IDF's default; ntp_sync_two_servers_test passes 2 as sdkconfig.defaults sets it. */
+/* ESP-IDF's default; ntp_sync_three_servers_test passes 3 as sdkconfig.defaults sets it. */
 #ifndef CONFIG_LWIP_SNTP_MAX_SERVERS
 #define CONFIG_LWIP_SNTP_MAX_SERVERS 1
 #endif

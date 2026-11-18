@@ -9,9 +9,11 @@
 #define SOLAR_OS_TIMEZONE_NAME_MAX 32
 #define SOLAR_OS_TIMEZONE_POSIX_MAX 80
 #define SOLAR_OS_NTP_DEFAULT_SERVER "pool.ntp.org"
-/* lwIP's first request waits up to 5 s; a lost reply costs its 15 s receive
- * timeout plus its 15 s retry delay, so the second request goes out by 35 s.
- * The wait leaves 5 s for that retry (tests/test_ntp_timeout.py). */
+/* lwIP's first request waits up to 5 s, and a lost reply costs its 15 s receive
+ * timeout. With one server slot lwIP then waits its 15 s retry delay; with three
+ * it asks the next server at once. So the next try goes out by 35 s after one
+ * lost reply (one slot) or two (three slots), and the wait leaves 5 s for it
+ * (tests/test_ntp_timeout.py). */
 #define SOLAR_OS_NTP_DEFAULT_TIMEOUT_MS 40000U
 
 typedef struct {

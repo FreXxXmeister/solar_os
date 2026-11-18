@@ -18,12 +18,14 @@
 #define TIME_NVS_TZ_NAME_KEY "tz_name"
 #define TIME_NVS_TZ_POSIX_KEY "tz_posix"
 #define TIME_NTP_SERVER_MAX 96
-/* Asked after pool.ntp.org: lwIP moves to the next server at once after a receive
- * timeout, while one server waits SNTP_RETRY_TIMEOUT and asks the same address again,
- * which fails when that pool member is down. */
-#define TIME_NTP_SECOND_SERVER "1.pool.ntp.org"
 #define SECONDS_PER_DAY 86400LL
 #define TIME_VALID_EPOCH_SECONDS 946684800LL
+
+/* pool.ntp.org is asked as ESPHome's default servers (esphome/components/sntp/time.py), one
+ * per lwIP slot: lwIP moves to the next slot at once after a receive timeout or a failed
+ * lookup, while one server waits SNTP_RETRY_TIMEOUT and asks the same address again, which
+ * fails when that pool member is down. */
+static const char *const ntp_pool_servers[] = {"0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"};
 
 static char timezone_name[SOLAR_OS_TIMEZONE_NAME_MAX] = "UTC";
 static char timezone_posix[SOLAR_OS_TIMEZONE_POSIX_MAX] = "UTC0";
@@ -493,15 +495,16 @@ static esp_err_t ntp_sync_once(const char *server,
 
     esp_netif_sntp_deinit();
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(selected_server);
-#if CONFIG_LWIP_SNTP_MAX_SERVERS >= 2
-    /* Fill both slots every time: lwIP keeps the current server index and the names of
-     * slots not set across a deinit, so a named server after a pool sync that moved on
-     * would otherwise ask 1.pool.ntp.org. A named server goes into both slots. */
-    config.servers[1] = strcmp(selected_server, SOLAR_OS_NTP_DEFAULT_SERVER) == 0
-                            ? TIME_NTP_SECOND_SERVER
-                            : selected_server;
-    config.num_of_servers = 2;
-#endif
+    /* Fill every slot every time: lwIP keeps the current server index and the names of slots
+     * not set across a deinit, so a named server after a pool sync that moved on would
+     * otherwise ask a pool server. pool.ntp.org goes in as ESPHome's servers, a named server
+     * into every slot. */
+    const bool pool = strcmp(selected_server, SOLAR_OS_NTP_DEFAULT_SERVER) == 0;
+    const size_t pool_count = sizeof(ntp_pool_servers) / sizeof(ntp_pool_servers[0]);
+    for (size_t i = 0; i < CONFIG_LWIP_SNTP_MAX_SERVERS; i++) {
+        config.servers[i] = pool ? ntp_pool_servers[i % pool_count] : selected_server;
+    }
+    config.num_of_servers = CONFIG_LWIP_SNTP_MAX_SERVERS;
     esp_err_t ret = esp_netif_sntp_init(&config);
     if (ret != ESP_OK) {
         return ret;

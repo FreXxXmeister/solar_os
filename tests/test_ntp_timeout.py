@@ -1,4 +1,4 @@
-"""The NTP wait must outlast one lost SNTP or DNS exchange in lwIP."""
+"""The NTP wait must outlast lwIP's next try after lost SNTP or DNS exchanges."""
 from pathlib import Path
 import re
 import unittest
@@ -15,13 +15,13 @@ SNTP_RECV_TIMEOUT_MS = 15000
 # lwIP sntp_opts.h: SNTP_RETRY_TIMEOUT = SNTP_RECV_TIMEOUT. In a build with one
 # server slot (CONFIG_LWIP_SNTP_MAX_SERVERS=1), sntp_try_next_server finds no other
 # server and calls sntp_retry, which waits this long before the next request. With
-# two slots lwIP moves on at once, so this is the longest case.
+# more slots lwIP moves on at once.
 SNTP_RETRY_TIMEOUT_MS = 15000
 # lwIP dns.c with DNS_MAX_RETRIES 4 and DNS_TMR_INTERVAL 1000: sends at 0, 1, 2 and 4 s,
 # and reports a failed lookup at 7 s when only one DNS server is set; sntp_dns_found
 # then calls sntp_try_next_server, and so sntp_retry.
 DNS_FAIL_MS = 7000
-# Time left for the second try's lookup and reply.
+# Time left for the last try's lookup and reply.
 REPLY_WINDOW_MS = 5000
 
 
@@ -43,6 +43,12 @@ class NtpTimeoutTest(unittest.TestCase):
         # then the second request.
         second_try_ms = SNTP_STARTUP_DELAY_MAX_MS + SNTP_RECV_TIMEOUT_MS + SNTP_RETRY_TIMEOUT_MS
         self.assertGreaterEqual(default_timeout_ms(), second_try_ms + REPLY_WINDOW_MS)
+
+    def test_default_wait_covers_two_silent_servers(self) -> None:
+        # Three slots: full start delay, the receive timeout of each of two servers that
+        # do not answer, then the third server.
+        third_try_ms = SNTP_STARTUP_DELAY_MAX_MS + 2 * SNTP_RECV_TIMEOUT_MS
+        self.assertGreaterEqual(default_timeout_ms(), third_try_ms + REPLY_WINDOW_MS)
 
     def test_manual_states_the_default_wait(self) -> None:
         ms = default_timeout_ms()

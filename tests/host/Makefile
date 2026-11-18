@@ -23,7 +23,7 @@ TARGETS += usb_service_storage_test
 TARGETS += usb_service_vbus_test
 TARGETS += storage_usb_mounts_test
 TARGETS += ps2_keyboard_job_test
-TARGETS += ntp_sync_test ntp_sync_two_servers_test
+TARGETS += ntp_sync_test ntp_sync_three_servers_test
 
 USB_HID_CODEC_SOURCES := $(ROOT)/src/drivers/usb_hid_report.c $(ROOT)/src/drivers/usb_hid_keyboard_report.c $(ROOT)/src/drivers/usb_hid_mouse_report.c $(ROOT)/src/drivers/usb_hid_joystick_report.c
 USB_HID_CODEC_HEADERS := $(wildcard $(ROOT)/src/drivers/usb_hid*report.h)
@@ -1443,12 +1443,12 @@ ntp_sync_test: ntp_sync_test.c esp_netif_sntp.h \
 		ntp_sync_test.c $(ROOT)/src/services/solar_os_time.c \
 		$(ROOT)/src/services/solar_os_timezone.c -o $@
 
-# The same test with lwIP built for two SNTP servers, as sdkconfig.defaults sets it.
-ntp_sync_two_servers_test: ntp_sync_test.c esp_netif_sntp.h \
+# The same test with lwIP built for three SNTP servers, as sdkconfig.defaults sets it.
+ntp_sync_three_servers_test: ntp_sync_test.c esp_netif_sntp.h \
 		$(ROOT)/src/services/solar_os_time.c \
 		$(ROOT)/src/services/solar_os_time.h \
 		$(ROOT)/src/services/solar_os_timezone.c
-	$(CC) $(CFLAGS) -D_GNU_SOURCE -DCONFIG_LWIP_SNTP_MAX_SERVERS=2 -include compat.h -I. \
+	$(CC) $(CFLAGS) -D_GNU_SOURCE -DCONFIG_LWIP_SNTP_MAX_SERVERS=3 -include compat.h -I. \
 		-I$(ROOT)/src/services ntp_sync_test.c $(ROOT)/src/services/solar_os_time.c \
 		$(ROOT)/src/services/solar_os_timezone.c -o $@
 
@@ -1630,7 +1630,7 @@ test: $(TARGETS)
 	./link_repeater_test
 	./time_timezone_test
 	./ntp_sync_test
-	./ntp_sync_two_servers_test
+	./ntp_sync_three_servers_test
 	./rtc_service_test
 	./rtc_pcf85063_test
 	./ubx_test

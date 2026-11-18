@@ -51,7 +51,7 @@ Time functions use the SolarOS RTC/time service.
 - `is_valid(datetime)`: validate a datetime.
 - `timezone()`: return `{"name": ..., "posix": ...}`.
 - `set_timezone(timezone)`: set timezone by SolarOS-supported name or POSIX TZ string.
-- `ntp_sync([server[, timeout_ms]])`: sync wall-clock time from NTP and return `{"utc": ..., "local": ...}`. `server` defaults to `pool.ntp.org`, with `1.pool.ntp.org` asked next when it does not answer (another server you name is asked alone), `timeout_ms` to `40000`. With less than 40000, a sync whose first packet is lost can fail before lwIP's retry. While another sync runs, it raises `OSError("ESP_ERR_INVALID_STATE")`. Stopping the script waits until a running `ntp_sync` returns.
+- `ntp_sync([server[, timeout_ms]])`: sync wall-clock time from NTP and return `{"utc": ..., "local": ...}`. `server` defaults to `pool.ntp.org`, asked as `0.pool.ntp.org`, `1.pool.ntp.org` and `2.pool.ntp.org`, the next one when one does not answer (another server you name is asked alone), `timeout_ms` to `40000`. With less than 40000, a sync whose first packet is lost can fail before lwIP's retry. While another sync runs, it raises `OSError("ESP_ERR_INVALID_STATE")`. Stopping the script waits until a running `ntp_sync` returns.
 
 Example:
 

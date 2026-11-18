@@ -1,4 +1,4 @@
-"""lwIP must be built for two SNTP servers, so pool.ntp.org gets a second one."""
+"""lwIP must be built for three SNTP servers, so pool.ntp.org gets ESPHome's three."""
 import configparser
 from pathlib import Path
 import shlex
@@ -27,7 +27,7 @@ def environment_defaults():
 
 
 class NtpSdkconfigTest(unittest.TestCase):
-    def test_every_environment_builds_two_sntp_servers(self):
+    def test_every_environment_builds_three_sntp_servers(self):
         environments = list(environment_defaults())
         self.assertTrue(environments)
         for environment, defaults in environments:
@@ -37,12 +37,12 @@ class NtpSdkconfigTest(unittest.TestCase):
                     for line in (ROOT / name).read_text(encoding="utf-8").splitlines():
                         if line.strip().startswith(KEY + "="):
                             value = line.strip().split("=", 1)[1]
-                self.assertEqual(value, "2")
+                self.assertEqual(value, "3")
 
-    def test_existing_sdkconfig_is_raised_to_two_servers(self):
+    def test_existing_sdkconfig_is_raised_to_three_servers(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "sdkconfig.defaults").write_text(f"{KEY}=2\n")
+            (root / "sdkconfig.defaults").write_text(f"{KEY}=3\n")
             config = root / "sdkconfig"
             config.write_text(f"CONFIG_LOCAL_SETTING=42\n{KEY}=1\n")
             script = root / "minimums.cmake"
@@ -54,7 +54,7 @@ class NtpSdkconfigTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             contents = config.read_text()
             self.assertIn("CONFIG_LOCAL_SETTING=42\n", contents)
-            self.assertIn(f"{KEY}=2\n", contents)
+            self.assertIn(f"{KEY}=3\n", contents)
             self.assertNotIn(f"{KEY}=1\n", contents)
 
 
