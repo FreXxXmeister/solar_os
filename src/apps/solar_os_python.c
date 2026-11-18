@@ -1547,6 +1547,9 @@ static mp_obj_t solaros_time_set_timezone(mp_obj_t timezone_obj)
 }
 MP_DEFINE_CONST_FUN_OBJ_1(solaros_time_set_timezone_obj, solaros_time_set_timezone);
 
+/* The stop must not delete the task inside a sync: the time service would stay busy until reboot. */
+static bool python_ntp_inflight;
+
 static mp_obj_t solaros_time_ntp_sync(size_t n_args, const mp_obj_t *args)
 {
     const char *server = python_optional_str(n_args, args, 0, SOLAR_OS_NTP_DEFAULT_SERVER);
@@ -1556,7 +1559,10 @@ static mp_obj_t solaros_time_ntp_sync(size_t n_args, const mp_obj_t *args)
                                                     SOLAR_OS_NTP_DEFAULT_TIMEOUT_MS);
     solar_os_datetime_t utc;
     solar_os_datetime_t local;
-    python_check_esp(solar_os_time_ntp_sync(server, timeout_ms, &utc, &local));
+    __atomic_store_n(&python_ntp_inflight, true, __ATOMIC_RELEASE);
+    const esp_err_t err = solar_os_time_ntp_sync(server, timeout_ms, &utc, &local);
+    __atomic_store_n(&python_ntp_inflight, false, __ATOMIC_RELEASE);
+    python_check_esp(err);
 
     mp_obj_t dict = mp_obj_new_dict(2);
     mp_obj_dict_store(dict, python_key("utc"), python_datetime_to_dict(&utc));
@@ -9488,11 +9494,12 @@ static void python_stop(solar_os_context_t *ctx)
                                            NULL,
                                            PYTHON_STOP_WAIT_MS,
                                            20U)) {
-            /* Media or inference can be inside a driver or joining a native
-             * worker. Never delete that owner task mid-call.
+            /* Media, inference or an NTP sync can be inside a driver or joining a
+             * native worker. Never delete that owner task mid-call.
              * Interpreter cancellation remains active while we wait. */
             while ((__atomic_load_n(&python_media_session, __ATOMIC_ACQUIRE) != NULL ||
-                    python_inference_active() || python_imlib_active() || python_emotion_active() || python_jet_active()) &&
+                    python_inference_active() || python_imlib_active() || python_emotion_active() || python_jet_active() ||
+                    __atomic_load_n(&python_ntp_inflight, __ATOMIC_ACQUIRE)) &&
                    !python_task_stopped(NULL)) {
                 (void)solar_os_script_wait_for_stop(python_task_stopped, NULL,
                     PYTHON_STOP_WAIT_MS, 20U);

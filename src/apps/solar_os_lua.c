@@ -1537,13 +1537,19 @@ static int solua_time_set_timezone(lua_State *L)
     return solua_check_esp(L, solar_os_time_set_timezone(luaL_checkstring(L, 1)));
 }
 
+/* The stop must not delete the task inside a sync: the time service would stay busy until reboot. */
+static bool solua_ntp_inflight;
+
 static int solua_time_ntp_sync(lua_State *L)
 {
     const char *server = solua_optional_str(L, 1, SOLAR_OS_NTP_DEFAULT_SERVER);
     const uint32_t timeout_ms = solua_optional_u32(L, 2, SOLAR_OS_NTP_DEFAULT_TIMEOUT_MS);
     solar_os_datetime_t utc;
     solar_os_datetime_t local;
-    (void)solua_check_esp(L, solar_os_time_ntp_sync(server, timeout_ms, &utc, &local));
+    __atomic_store_n(&solua_ntp_inflight, true, __ATOMIC_RELEASE);
+    const esp_err_t err = solar_os_time_ntp_sync(server, timeout_ms, &utc, &local);
+    __atomic_store_n(&solua_ntp_inflight, false, __ATOMIC_RELEASE);
+    (void)solua_check_esp(L, err);
 
     lua_newtable(L);
     solua_push_datetime(L, &utc);
@@ -8626,11 +8632,12 @@ static void solua_stop(solar_os_context_t *ctx)
                                            NULL,
                                            SOLUA_STOP_WAIT_MS,
                                            20U)) {
-            /* Media or inference can be inside a driver or joining a native
-             * worker. Never delete that owner task mid-call.
+            /* Media, inference or an NTP sync can be inside a driver or joining a
+             * native worker. Never delete that owner task mid-call.
              * Interpreter cancellation remains active while we wait. */
             while ((__atomic_load_n(&solua_media_session, __ATOMIC_ACQUIRE) != NULL ||
-                    solua_inference_active() || solua_imlib_active() || solua_emotion_active() || solua_jet_active()) &&
+                    solua_inference_active() || solua_imlib_active() || solua_emotion_active() || solua_jet_active() ||
+                    __atomic_load_n(&solua_ntp_inflight, __ATOMIC_ACQUIRE)) &&
                    !solua_task_stopped(NULL)) {
                 (void)solar_os_script_wait_for_stop(solua_task_stopped, NULL,
                     SOLUA_STOP_WAIT_MS, 20U);
